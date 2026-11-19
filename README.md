@@ -3,7 +3,7 @@ Quickmath
 
 A simple plugin to do live calculations in Neovim.
 
-This fork works like [upstream Quickmath](https://github.com/jbyuki/quickmath.nvim) and adds one requirement. Wrap calculations in `<math>...</math>` tags.
+This fork works like [upstream Quickmath](https://github.com/jbyuki/quickmath.nvim) and adds one requirement. Wrap calculations in `<maths>...</maths>` tags, using the British spelling.
 
 I like putting live calculations in documents with their own syntax, such as Markdown notes that mix prose, code, and tables. The tags tell Quickmath which parts of the document to evaluate.
 
@@ -32,16 +32,17 @@ Usage
 -----
 
 Run `:Quickmath` in the current buffer to show live results from complete
-`<math>...</math>` sections. The surrounding text is ignored.
+`<maths>...</maths>` sections. The surrounding text is ignored.
+If you used the earlier `<math>...</math>` tags, update them to `<maths>...</maths>`.
 
 ```text
-The square root is <math>sqrt(81)</math>.
+The square root is <maths>sqrt(81)</maths>.
 
-<math>
+<maths>
 price = 12.50
 quantity = 4
 price * quantity
-</math>
+</maths>
 ```
 
 Each nonblank line inside a section is a Lua expression or assignment.

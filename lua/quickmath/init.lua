@@ -12,7 +12,7 @@ local function tagged_expressions(lines)
 	for row, line in ipairs(lines) do
 		local column = 1
 		while true do
-			local first, last, closing = line:find("<(/?)math>", column)
+			local first, last, closing = line:find("<(/?)maths>", column)
 			if pending then
 				local expression = vim.trim(line:sub(column, first and first - 1))
 				if expression ~= "" then
