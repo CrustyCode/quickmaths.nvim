@@ -1,11 +1,11 @@
-Quickmath
-=========
+Quickmaths
+==========
 
 A simple plugin to do live calculations in Neovim.
 
 This fork works like [upstream Quickmath](https://github.com/jbyuki/quickmath.nvim) and adds one requirement. Wrap calculations in `<maths>...</maths>` tags, using the British spelling.
 
-I like putting live calculations in documents with their own syntax, such as Markdown notes that mix prose, code, and tables. The tags tell Quickmath which parts of the document to evaluate.
+I like putting live calculations in documents with their own syntax, such as Markdown notes that mix prose, code, and tables. The tags tell Quickmaths which parts of the document to evaluate.
 
 Install
 -------
@@ -31,7 +31,7 @@ Using an environnement such as nvim allows to implement and use a live calculato
 Usage
 -----
 
-Run `:Quickmath` in the current buffer to show live results from complete
+Run `:Quickmaths` in the current buffer to show live results from complete
 `<maths>...</maths>` sections. The surrounding text is ignored.
 If you used the earlier `<math>...</math>` tags, update them to `<maths>...</maths>`.
 
