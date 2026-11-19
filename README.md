@@ -3,20 +3,18 @@ Quickmath
 
 A simple plugin to do live calculations in Neovim.
 
-![quickmath screenshot](https://raw.githubusercontent.com/jbyuki/gifs/main/quickmath.PNG)
-
 Install
 -------
 
 Install using your prefered method:
 - [vim-plug](https://github.com/junegunn/vim-plug).
 ```vim
-Plug 'jbyuki/quickmath.nvim'
+Plug 'CrustyCode/quickmath.nvim'
 ```
 
 - [packer.nvim](https://github.com/wbthomason/packer.nvim)
 ```lua
-use "jbyuki/quickmath.nvim"
+use "CrustyCode/quickmath.nvim"
 ```
 
 Background
@@ -29,18 +27,22 @@ Using an environnement such as nvim allows to implement and use a live calculato
 Usage
 -----
 
-Ok, enough rants.
+Run `:Quickmath` in the current buffer to show live results from complete
+`<math>...</math>` sections. The surrounding text is ignored.
 
-You can use this tool simply by invoking:
+```text
+The square root is <math>sqrt(81)</math>.
 
-```lua
-:Quickmath
+<math>
+price = 12.50
+quantity = 4
+price * quantity
+</math>
 ```
 
-All calculations is actually lua code.
-This means you can use functions which are available in the `math` module.
-Lists them using `:lua print(vim.inspect(math))`. 
-All the math module functions are put in global namespace when quickmath is initiated. So instead of writing `math.cos`, `cos` can be simply written.
+Each nonblank line inside a section is a Lua expression or assignment.
+Variables can be used in later calculations in the same buffer. Functions
+from Lua's `math` module are also available without the `math.` prefix.
 
 **Get that output**
 

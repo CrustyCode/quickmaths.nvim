@@ -1,135 +1,154 @@
 -- Generated using ntangle.nvim
-local vnamespace
-
-local virt_texts = {}
+local namespace = vim.api.nvim_create_namespace("quickmath")
+local sessions = {}
 
 local vector = {}
 vector.__index = vector
 
-local go_eol
+local function tagged_expressions(lines)
+	local expressions = {}
+	local pending
 
-local function StartSession()
-	for mod, fn in pairs(math) do
-		_G[mod] = fn
+	for row, line in ipairs(lines) do
+		local column = 1
+		while true do
+			local first, last, closing = line:find("<(/?)math>", column)
+			if pending then
+				local expression = vim.trim(line:sub(column, first and first - 1))
+				if expression ~= "" then
+					table.insert(pending, { row = row, text = expression })
+				end
+			end
+
+			if not first then
+				break
+			end
+			if closing == "" then
+				pending = {}
+			elseif pending then
+				vim.list_extend(expressions, pending)
+				pending = nil
+			end
+			column = last + 1
+		end
 	end
 
-	vec = vec
-
-	vnamespace = vim.api.nvim_create_namespace("quickmath")
-
-	vim.api.nvim_buf_attach(0, false, { on_lines = vim.schedule_wrap(function(...)
-		local content = vim.api.nvim_buf_get_lines(0, 0, -1, true)
-
-		local anon_n = 1
-
-		for i, line in ipairs(content) do
-			local line = content[i]
-			if not string.find(line, "^[A-Za-z_][A-Za-z0-9_]*%s*=") and not string.find(line, "^%s*$") then
-				line = ("anon%d = %s"):format(anon_n, line)
-				anon_n = anon_n + 1
-			end
-			content[i] = line
-		end
-
-		local f, errmsg = loadstring(table.concat(content, "\n"))
-		local success
-		if not f then
-		else
-			success, errmsg = pcall(f)
-		end
-
-		local def = {}
-		for i,line in ipairs(content) do
-			if string.find(line, "^[A-Za-z_][A-Za-z0-9_]*%s*=") then
-				local name = string.match(line, "^([A-Za-z_][A-Za-z0-9_]*)%s*=")
-
-				table.insert(def, { lnum = i, name = name })
-
-			end
-
-		end
-
-		vim.api.nvim_buf_clear_namespace(0, vnamespace, 0, -1)
-
-	  virt_texts = {}
-
-		for _,d in ipairs(def) do
-			if _G[d.name] then
-				local v = _G[d.name]
-				if type(v) == "number" then
-					vim.api.nvim_buf_set_virtual_text( 0, vnamespace, d.lnum-1, {{ tostring(v), "Special" }}, {})
-		      virt_texts[d.lnum] = tostring(v)
-
-				end
-				if type(v) == "table" and v.is_complex then
-					vim.api.nvim_buf_set_virtual_text( 0, vnamespace, d.lnum-1, {{ tostring(v), "Special" }}, {})
-				  virt_texts[d.lnum] = tostring(v)
-
-				end
-
-				if isvec(v) then
-				  vim.api.nvim_buf_set_virtual_text( 0, vnamespace, d.lnum-1, {{ tostring(v), "Special" }}, {})
-				  virt_texts[d.lnum] = tostring(v)
-
-				end
-
-			end
-		end
-
-		if errmsg then
-			local lcur = vim.api.nvim_call_function("line", { "." }) - 1
-			vim.api.nvim_buf_set_virtual_text( 0, vnamespace, lcur, {{ errmsg, "Special" }}, {})
-		end
-
-	end)})
-
-	vim.api.nvim_command("set ft=lua")
-
-  vim.cmd [[set buftype=nowrite]]
-  vim.api.nvim_buf_set_keymap(0, "n", "$", [[:lua require"quickmath".go_eol()<CR>]], { silent=true })
-
+	return expressions
 end
 
-function go_eol()
-  local line = vim.api.nvim_get_current_line()
-  local lnum, lcol = unpack(vim.api.nvim_win_get_cursor(0))
-  local cur = vim.str_utfindex(line, lcol)
-  local last = vim.str_utfindex(line)
-  local eol = cur == last-1
+local function draw_results(buf, results, selected_row)
+	vim.api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
+	for row, result in pairs(results) do
+		local highlight = row == selected_row and "Visual" or "Special"
+		vim.api.nvim_buf_set_extmark(buf, namespace, row - 1, 0, {
+			virt_text = {{ result, highlight }},
+		})
+	end
+end
 
-  if not eol then
-    vim.api.nvim_win_set_cursor(0, { lnum, line:len() })
+local function evaluate(expressions)
+	if #expressions == 0 then
+		return {}
+	end
 
-  else
-    if virt_texts[lnum] then
-      vim.api.nvim_buf_clear_namespace(0, vnamespace, 0, -1)
+	local code = {}
+	local anonymous = 0
+	for i, expression in ipairs(expressions) do
+		local name = expression.text:match("^([A-Za-z_][A-Za-z0-9_]*)%s*=")
+		if name then
+			code[i] = expression.text
+		else
+			anonymous = anonymous + 1
+			name = ("anon%d"):format(anonymous)
+			code[i] = name .. " = " .. expression.text
+		end
+		expression.name = name
+	end
 
-      for vlnum, vtxt in pairs(virt_texts) do
+	local env = setmetatable({ vec = vec }, { __index = _G })
+	for name, fn in pairs(math) do
+		env[name] = fn
+	end
 
-        local hlgroup = "Special"
-        if vlnum == lnum then
-          hlgroup = "Visual"
-        end
-        vim.api.nvim_buf_set_virtual_text( 0, vnamespace, vlnum-1, {{ virt_texts[vlnum], hlgroup }}, {})
-      end
+	local chunk, err = loadstring(table.concat(code, "\n"), "=quickmath")
+	if chunk then
+		local ok
+		ok, err = pcall(setfenv(chunk, env))
+		if ok then
+			err = nil
+		end
+	end
 
-      vim.schedule(function()
-        local key = vim.fn.getchar()
-        local c = string.char(key)
-        if c == 'y' then
-          vim.api.nvim_command(([[let @+="%s"]]):format(tostring(virt_texts[lnum])))
-        end
-        vim.api.nvim_buf_clear_namespace(0, vnamespace, 0, -1)
+	if err then
+		err = tostring(err)
+		local index = tonumber(err:match("^quickmath:(%d+):"))
+		local expression = expressions[index] or expressions[#expressions]
+		return { [expression.row] = err:gsub("[\r\n]+", " ") }
+	end
 
-        for vlnum, vtxt in pairs(virt_texts) do
-          local hlgroup = "Special"
-          vim.api.nvim_buf_set_virtual_text( 0, vnamespace, vlnum-1, {{ virt_texts[vlnum], hlgroup }}, {})
-        end
+	local results = {}
+	for _, expression in ipairs(expressions) do
+		local value = rawget(env, expression.name)
+		local kind = type(value)
+		if kind == "number" or (kind == "table" and (value.is_complex or isvec(value))) then
+			local row = expression.row
+			local result = tostring(value)
+			results[row] = results[row] and (results[row] .. " | " .. result) or result
+		end
+	end
+	return results
+end
 
-      end)
-    end
-  end
+local function StartSession()
+	local buf = vim.api.nvim_get_current_buf()
+	if sessions[buf] then
+		return
+	end
 
+	local session = {}
+	sessions[buf] = session
+	local function refresh()
+		if sessions[buf] ~= session or not vim.api.nvim_buf_is_loaded(buf) then
+			return
+		end
+		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, true)
+		session.results = evaluate(tagged_expressions(lines))
+		draw_results(buf, session.results)
+	end
+
+	vim.api.nvim_buf_attach(buf, false, {
+		on_lines = vim.schedule_wrap(refresh),
+		on_detach = function()
+			sessions[buf] = nil
+		end,
+	})
+	vim.api.nvim_buf_set_keymap(buf, "n", "$", [[:lua require"quickmath".go_eol()<CR>]], { silent = true })
+	refresh()
+end
+
+local function go_eol()
+	local buf = vim.api.nvim_get_current_buf()
+	local line = vim.api.nvim_get_current_line()
+	local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+	local at_end = vim.str_utfindex(line, column) == vim.str_utfindex(line) - 1
+	if not at_end then
+		vim.api.nvim_win_set_cursor(0, { row, #line })
+		return
+	end
+
+	local session = sessions[buf]
+	local result = session and session.results[row]
+	if result then
+		draw_results(buf, session.results, row)
+		vim.schedule(function()
+			if vim.fn.getchar() == string.byte("y") then
+				vim.fn.setreg("+", result)
+			end
+			if sessions[buf] == session then
+				draw_results(buf, session.results)
+			end
+		end)
+	end
 end
 
 function vec(...)
@@ -333,8 +352,5 @@ end
 
 return {
 StartSession = StartSession,
-
 go_eol = go_eol,
-
 }
-
