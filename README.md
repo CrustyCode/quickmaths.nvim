@@ -3,6 +3,10 @@ Quickmath
 
 A simple plugin to do live calculations in Neovim.
 
+This fork works like [upstream Quickmath](https://github.com/jbyuki/quickmath.nvim) and adds one requirement. Wrap calculations in `<math>...</math>` tags.
+
+I like putting live calculations in documents with their own syntax, such as Markdown notes that mix prose, code, and tables. The tags tell Quickmath which parts of the document to evaluate.
+
 Install
 -------
 
@@ -17,8 +21,8 @@ Plug 'CrustyCode/quickmath.nvim'
 use "CrustyCode/quickmath.nvim"
 ```
 
-Background
-----------
+Upstream background
+-------------------
 
 This is a long standing plug-in in my collections of not really polished plugins, not that my released my plugins are very polished either. I felt obligated to release it because of how useful it is, especially if you study or work in a scientific field, and because there are no really equivalent plug-ins now in the nvim plugin ecosystem. It can pointed out also that outside the realm of nvim really, we usually do our computations in the traditional way, on a calculator or a more "programming mindset" person could do it in a python interpreter or in matlab repl maybe but these tools don't offer a live computation environnement, i.e. an environnement where values of variables can be changed on the fly, and all subsequent calculations are updated immediately, which is terribly useful in any involved computation! The only tool that I see other persons use that I'm aware is Excel but still, it feels very heavy and clunky.
 
